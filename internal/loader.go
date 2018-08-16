@@ -8,7 +8,7 @@ import (
 	"github.com/gedex/inflector"
 	"github.com/knq/snaker"
 
-	"github.com/ThatTomPerson/xo/models"
+	"github.com/ThatTomPerson/zen/models"
 )
 
 // Loader is the common interface for database drivers that can generate code
@@ -490,6 +490,7 @@ func (tl TypeLoader) LoadRelkind(args *ArgType, relType RelType) (map[string]*Ty
 			RelType: relType,
 			Fields:  []*Field{},
 			Table:   ti,
+			XRay:    args.XRay,
 		}
 
 		// process columns

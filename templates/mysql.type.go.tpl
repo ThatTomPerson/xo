@@ -38,8 +38,10 @@ func ({{ $short }} *{{ .Name }}) Deleted() bool {
 // Insert inserts the {{ .Name }} to the database.
 func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 	var err error
+	{{- if .XRay }}
 	ctx, seg := xray.BeginSubsegment(ctx, "{{ .Name }}.Insert")
 	defer seg.Close(err)
+	{{- end }}
 
 	// if already exist, bail
 	if {{ $short }}._exists {
@@ -90,8 +92,9 @@ func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 	// set primary key and existence
 	{{ $short }}.{{ .PrimaryKey.Name }} = {{ .PrimaryKey.Type }}(id)
 	{{ $short }}._exists = true
-
+	{{- if .XRay }}
 	seg.AddMetadata("Inserted {{ .PrimaryKey.Name }}", {{ $short }}.{{ .PrimaryKey.Name }})
+	{{- end }}
 {{ end }}
 
 	return nil

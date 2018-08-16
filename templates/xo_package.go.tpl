@@ -12,5 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	{{- if .XRay }}
+	"github.com/aws/aws-xray-sdk-go"
+	{{- end }}
 )
 

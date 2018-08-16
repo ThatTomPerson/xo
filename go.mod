@@ -1,4 +1,4 @@
-module github.com/ThatTomPerson/xo
+module github.com/ThatTomPerson/zen
 
 require (
 	cloud.google.com/go v0.26.0 // indirect

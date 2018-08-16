@@ -1,6 +1,6 @@
 package internal
 
-import "github.com/ThatTomPerson/xo/models"
+import "github.com/ThatTomPerson/zen/models"
 
 // TemplateType represents a template type.
 type TemplateType uint
@@ -129,6 +129,7 @@ type Type struct {
 	Timestamps       bool
 	Table            *models.Table
 	Comment          string
+	XRay             bool
 }
 
 // ForeignKey is a template item for a foreign relationship on a table.

@@ -1,7 +1,6 @@
 package main
 
-//go:generate ./tpl.sh
-//go:generate ./gen.sh models
+//go:generate go-bindata -pkg tplbin -prefix templates/ -o tplbin/templates.go -ignore .go$ -ignore .swp$ -nometadata -nomemcopy templates/*.tpl
 
 import (
 	"database/sql"
@@ -16,11 +15,11 @@ import (
 
 	"github.com/alexflint/go-arg"
 
+	"github.com/ThatTomPerson/xo/internal"
+	"github.com/ThatTomPerson/xo/models"
 	"github.com/xo/dburl"
-	"github.com/xo/xo/internal"
-	"github.com/xo/xo/models"
 
-	_ "github.com/xo/xo/loaders"
+	_ "github.com/ThatTomPerson/xo/loaders"
 	_ "github.com/xo/xoutil"
 )
 

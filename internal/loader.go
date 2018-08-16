@@ -8,7 +8,7 @@ import (
 	"github.com/gedex/inflector"
 	"github.com/knq/snaker"
 
-	"github.com/xo/xo/models"
+	"github.com/ThatTomPerson/xo/models"
 )
 
 // Loader is the common interface for database drivers that can generate code
@@ -460,6 +460,8 @@ func (tl TypeLoader) LoadProcParams(args *ArgType, procTpl *Proc) error {
 func (tl TypeLoader) LoadRelkind(args *ArgType, relType RelType) (map[string]*Type, error) {
 	var err error
 
+	fmt.Println(args.Tables)
+
 	// load tables
 	tableList, err := tl.TableList(args.DB, args.Schema, tl.Relkind(relType))
 	if err != nil {
@@ -469,6 +471,18 @@ func (tl TypeLoader) LoadRelkind(args *ArgType, relType RelType) (map[string]*Ty
 	// tables
 	tableMap := make(map[string]*Type)
 	for _, ti := range tableList {
+		good := true
+		for _, t := range args.Tables {
+			good = false
+			if ti.TableName == t {
+				good = true
+				break
+			}
+		}
+		if !good {
+			continue
+		}
+
 		// create template
 		typeTpl := &Type{
 			Name:    SingularizeIdentifier(ti.TableName),
@@ -526,6 +540,14 @@ func (tl TypeLoader) LoadColumns(args *ArgType, typeTpl *Type) error {
 
 		if ignore {
 			continue
+		}
+
+		if c.ColumnName == "deleted_at" {
+			typeTpl.SoftDeletes = true
+		}
+
+		if c.ColumnName == "created_at" || c.ColumnName == "updated_at" {
+			typeTpl.Timestamps = true
 		}
 
 		// set col info
@@ -664,6 +686,10 @@ func (tl TypeLoader) LoadIndexes(args *ArgType, tableMap map[string]*Type) (map[
 
 	// generate templates
 	for _, ix := range ixMap {
+		if len(ix.Fields) == 1 && ix.Fields[0].Name == ix.Type.PrimaryKey.Name && !ix.Index.IsPrimary {
+			continue
+		}
+
 		err = args.ExecuteTemplate(IndexTemplate, ix.Type.Name, ix.Index.IndexName, ix)
 		if err != nil {
 			return nil, err

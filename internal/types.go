@@ -1,6 +1,6 @@
 package internal
 
-import "github.com/xo/xo/models"
+import "github.com/ThatTomPerson/xo/models"
 
 // TemplateType represents a template type.
 type TemplateType uint
@@ -125,6 +125,8 @@ type Type struct {
 	PrimaryKey       *Field
 	PrimaryKeyFields []*Field
 	Fields           []*Field
+	SoftDeletes      bool
+	Timestamps       bool
 	Table            *models.Table
 	Comment          string
 }

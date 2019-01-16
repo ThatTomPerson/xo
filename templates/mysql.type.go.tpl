@@ -1,10 +1,6 @@
 {{- $short := (shortname .Name "err" "res" "sqlstr" "db" "XOLog") -}}
 {{- $table := (schema .Schema .Table.TableName) -}}
-{{- if .Comment -}}
-// {{ .Comment }}
-{{- else -}}
-// {{ .Name }} represents a row from '{{ $table }}'.
-{{- end }}
+
 
 type {{ .Name }}Attributes struct {
 {{- range .Fields }}
@@ -12,11 +8,18 @@ type {{ .Name }}Attributes struct {
 {{- end }}
 }
 
+func (this *{{ .Name }}Attributes) Equal(that *{{ .Name }}Attributes) bool {
+return deriveEqual{{ .Name }}Attributes(this, that)
+}
+
+{{- if .Comment -}}
+// {{ .Comment }}
+{{- else -}}
+// {{ .Name }} represents a row from '{{ $table }}'.
+{{- end }}
 type {{ .Name }} struct {
 {{ .Name }}Attributes
-_original struct {
-{{ .Name }}Attributes
-}
+_original {{ .Name }}Attributes
 {{- if .PrimaryKey }}
 
 	// xo fields
@@ -43,6 +46,18 @@ func ({{ $short }} *{{ .Name }}) Deleted() bool {
 	{{- else }}
 	return {{ $short }}._deleted
 	{{- end }}
+}
+
+// Deleted provides information if the
+{{ .Name }}  has been deleted from the database.
+func ({{ $short }} *{{ .Name }}) Dirty() bool {
+return !{{ $short }}.Equal(&{{ $short }}._original)
+}
+
+// Deleted provides information if the
+{{ .Name }}  has been deleted from the database.
+func ({{ $short }} *{{ .Name }}) SyncOriginal() {
+{{ $short }}._original = {{ $short }}.{{ .Name }}Attributes
 }
 
 // Insert inserts the {{ .Name }} to the database.
@@ -77,6 +92,7 @@ func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 	if err != nil {
 		return err
 	}
+{{ $short }}.SyncOriginal()
 
 	// set existence
 	{{ $short }}._exists = true
@@ -94,6 +110,7 @@ func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 	if err != nil {
 		return err
 	}
+{{ $short }}.SyncOriginal()
 
 	// retrieve id
 	id, err := res.LastInsertId()
@@ -115,7 +132,11 @@ func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 {{ if ne (fieldnamesmulti .Fields $short .PrimaryKeyFields) "" }}
 	// Update updates the {{ .Name }} in the database.
 	func ({{ $short }} *{{ .Name }}) Update(ctx context.Context, db XODB) error {
-		var err error
+if !{{ $short }}.Dirty() {
+return nil
+}
+
+var err error
 		{{- if .XRay }}
 		ctx, seg := xray.BeginSubsegment(ctx, "{{ .Name }}.Update")
 		defer seg.Close(err)
@@ -142,7 +163,7 @@ func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 			// run query
 			XOLog(sqlstr, {{ fieldnamesmulti .Fields $short .PrimaryKeyFields }}, {{ fieldnames .PrimaryKeyFields $short}})
 			_, err = db.Exec(ctx, sqlstr, {{ fieldnamesmulti .Fields $short .PrimaryKeyFields }}, {{ fieldnames .PrimaryKeyFields $short}})
-			return err
+
 		{{- else }}
 			// sql query
 			const sqlstr = `UPDATE {{ $table }} SET ` +
@@ -151,8 +172,9 @@ func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 			// run query
 			XOLog(sqlstr, {{ fieldnames .Fields $short .PrimaryKey.Name }}, {{ $short }}.{{ .PrimaryKey.Name }})
 			_, err = db.Exec(ctx, sqlstr, {{ fieldnames .Fields $short .PrimaryKey.Name }}, {{ $short }}.{{ .PrimaryKey.Name }})
+{{- end }}
+{{ $short }}.SyncOriginal()
 			return err
-		{{- end }}
 	}
 	// Save saves the {{ .Name }} to the database.
 	func ({{ $short }} *{{ .Name }}) Save(ctx context.Context, db XODB) error {
@@ -198,6 +220,7 @@ func ({{ $short }} *{{ .Name }}) Delete(ctx context.Context, db XODB) error {
 		if err != nil {
 			return err
 		}
+		{{ $short }}.SyncOriginal()
 	{{- else }}
 		// sql query
 		{{- if .SoftDeletes }}
@@ -212,6 +235,7 @@ func ({{ $short }} *{{ .Name }}) Delete(ctx context.Context, db XODB) error {
 		if err != nil {
 			return err
 		}
+		{{ $short }}.SyncOriginal()
 	{{- end }}
 
 	// set deleted
@@ -226,9 +250,9 @@ func ({{ $short }} *{{ .Name }}) Delete(ctx context.Context, db XODB) error {
 {{- end }}
 
 // All
-{{ .Name }}  s retrieves all rows from '
-{{ $table }} ' as a
-{{ .Name }}.
+{{ .Name }}    s retrieves all rows from '
+{{- $table -}} ' as a
+{{ .Name }}    .
 func All{{ .Name }}s(ctx context.Context, db XODB) ([]*{{ .Name }}, error) {
 var err error
 {{- if .XRay }}

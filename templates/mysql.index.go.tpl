@@ -27,6 +27,7 @@ func {{ .FuncName }}(ctx context.Context, db XODB{{ goparamlist .Fields true tru
 	if err != nil {
 		return nil, err
 	}
+{{ $short }}.SyncOriginal()
 
 	return &{{ $short }}, nil
 {{- else }}
@@ -50,7 +51,7 @@ func {{ .FuncName }}(ctx context.Context, db XODB{{ goparamlist .Fields true tru
 		if err != nil {
 			return nil, err
 		}
-
+{{ $short }}.SyncOriginal()
 		res = append(res, &{{ $short }})
 	}
 

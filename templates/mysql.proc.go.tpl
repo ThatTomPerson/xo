@@ -15,6 +15,7 @@ func {{ .Name }}(db XODB{{ goparamlist .Params true true }}) ({{ if $notVoid }}{
 	if err != nil {
 		return {{ reniltype .Return.NilType }}, err
 	}
+ret.SyncOriginal()
 
 	return ret, nil
 {{- else }}

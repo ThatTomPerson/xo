@@ -19,6 +19,7 @@ func {{ .Name }} (db XODB{{ range .QueryParams }}, {{ .Name }} {{ .Type }}{{ end
 	if err != nil {
 		return nil, err
 	}
+	{{ $short }}.SyncOriginal()
 
 	return &{{ $short }}, nil
 {{- else }}
@@ -38,7 +39,7 @@ func {{ .Name }} (db XODB{{ range .QueryParams }}, {{ .Name }} {{ .Type }}{{ end
 		if err != nil {
 			return nil, err
 		}
-
+{{ $short }}.SyncOriginal()
 		res = append(res, &{{ $short }})
 	}
 

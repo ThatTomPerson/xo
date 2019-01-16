@@ -8,7 +8,7 @@ import (
 	"github.com/gedex/inflector"
 	"github.com/knq/snaker"
 
-	"github.com/ThatTomPerson/zen/models"
+	"github.com/thattomperson/zen/models"
 )
 
 // Loader is the common interface for database drivers that can generate code

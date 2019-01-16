@@ -1,4 +1,4 @@
-GO = go1.11rc1
+GO = go
 
 run: clean
 	mkdir -p dist

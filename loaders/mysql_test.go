@@ -3,8 +3,8 @@ package loaders_test
 import (
 	"testing"
 
-	"github.com/ThatTomPerson/zen/internal"
-	"github.com/ThatTomPerson/zen/loaders"
+	"github.com/thattomperson/zen/internal"
+	"github.com/thattomperson/zen/loaders"
 )
 
 func Test_MyParseType(t *testing.T) {

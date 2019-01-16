@@ -15,11 +15,11 @@ import (
 
 	"github.com/alexflint/go-arg"
 
-	"github.com/ThatTomPerson/zen/internal"
-	"github.com/ThatTomPerson/zen/models"
+	"github.com/thattomperson/zen/internal"
+	"github.com/thattomperson/zen/models"
 	"github.com/xo/dburl"
 
-	_ "github.com/ThatTomPerson/zen/loaders"
+	_ "github.com/thattomperson/zen/loaders"
 	_ "github.com/xo/xoutil"
 )
 

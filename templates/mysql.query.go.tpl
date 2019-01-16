@@ -5,7 +5,7 @@
 {{- else -}}
 // {{ .Name }} runs a custom query, returning results as {{ .Type.Name }}.
 {{- end }}
-func {{ .Name }} (db XODB{{ range .QueryParams }}, {{ .Name }} {{ .Type }}{{ end }}) ({{ if not .OnlyOne }}[]{{ end }}*{{ .Type.Name }}, error) {
+func {{ .Name }} (db XODB{{ range .QueryParams }}, {{ .Name }} {{ .Type }}{{ end }}) ({{ if not .OnlyOne }}{{ .Type.Name}}Slice{{ else }}*{{ .Type.Name }}{{ end }}, error) {
 	var err error
 	// sql query
 	{{ if .Interpolate }}var{{ else }}const{{ end }} sqlstr = {{ range $i, $l := .Query }}{{ if $i }} +{{ end }}{{ if (index $queryComments $i) }} // {{ index $queryComments $i }}{{ end }}{{ if $i }}

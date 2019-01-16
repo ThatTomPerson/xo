@@ -5,10 +5,18 @@
 {{- else -}}
 // {{ .Name }} represents a row from '{{ $table }}'.
 {{- end }}
-type {{ .Name }} struct {
+
+type {{ .Name }}Attributes struct {
 {{- range .Fields }}
-	{{ .Name }} {{ retype .Type }} `json:"{{ .Col.ColumnName }}"` // {{ .Col.ColumnName }}
+{{ .Name }} {{ retype .Type }} `json:"{{ .Col.ColumnName }}"` // {{ .Col.ColumnName }}
 {{- end }}
+}
+
+type {{ .Name }} struct {
+{{ .Name }}Attributes
+_original struct {
+{{ .Name }}Attributes
+}
 {{- if .PrimaryKey }}
 
 	// xo fields
@@ -19,6 +27,8 @@ type {{ .Name }} struct {
 	{{- end }}
 {{ end }}
 }
+
+type {{ .Name }}Slice []*{{ .Name }}
 
 {{ if .PrimaryKey }}
 // Exists determines if the {{ .Name }} exists in the database.
@@ -47,11 +57,13 @@ func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 	if {{ $short }}._exists {
 		return errors.New("insert failed: already exists")
 	}
-
+	{{ if .Timestamps }}
 	{{ $short }}.UpdatedAt.Scan(time.Now())
 	{{ $short }}.CreatedAt.Scan(time.Now())
+	{{- end }}
 
-{{ if .Table.ManualPk  }}
+
+	{{ if .Table.ManualPk  }}
 	// sql insert query, primary key must be provided
 	const sqlstr = `INSERT INTO {{ $table }} (` +
 		`{{ colnames .Fields }}` +
@@ -104,12 +116,15 @@ func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 	// Update updates the {{ .Name }} in the database.
 	func ({{ $short }} *{{ .Name }}) Update(ctx context.Context, db XODB) error {
 		var err error
+		{{- if .XRay }}
 		ctx, seg := xray.BeginSubsegment(ctx, "{{ .Name }}.Update")
 		defer seg.Close(err)
 
-		{{ $short }}.UpdatedAt.Scan(time.Now())
-
 		seg.AddMetadata("{{ .PrimaryKey.Name }}", {{ $short }}.{{ .PrimaryKey.Name }})
+		{{- end }}
+		{{ if .Timestamps }}
+		{{ $short }}.UpdatedAt.Scan(time.Now())
+		{{- end }}
 
 		// if doesn't exist, bail
 		if !{{ $short }}._exists {
@@ -152,8 +167,12 @@ func ({{ $short }} *{{ .Name }}) Insert(ctx context.Context, db XODB) error {
 // Delete deletes the {{ .Name }} from the database.
 func ({{ $short }} *{{ .Name }}) Delete(ctx context.Context, db XODB) error {
 	var err error
+	{{- if .XRay }}
 	ctx, seg := xray.BeginSubsegment(ctx, "{{ .Name }}.Delete")
 	defer seg.Close(err)
+
+	seg.AddMetadata("ID", {{ $short }}.{{ .PrimaryKey.Name }})
+	{{- end }}
 
 	// if doesn't exist, bail
 	if !{{ $short }}._exists {
@@ -168,7 +187,7 @@ func ({{ $short }} *{{ .Name }}) Delete(ctx context.Context, db XODB) error {
 	{{ if gt ( len .PrimaryKeyFields ) 1 }}
 		// sql query with composite primary key
 		{{- if .SoftDeletes }}
-		const sqlstr = `UPDATE {{ $table }} SET deleted_at = GETDATE() WHERE {{ colnamesquery .PrimaryKeyFields " AND " }}`
+	const sqlstr = `UPDATE {{ $table }} SET deleted_at = NOW() WHERE {{ colnamesquery .PrimaryKeyFields " AND " }}`
 		{{- else }}
 		const sqlstr = `DELETE FROM {{ $table }} WHERE {{ colnamesquery .PrimaryKeyFields " AND " }}`
 		{{- end }}
@@ -182,7 +201,7 @@ func ({{ $short }} *{{ .Name }}) Delete(ctx context.Context, db XODB) error {
 	{{- else }}
 		// sql query
 		{{- if .SoftDeletes }}
-		const sqlstr = `UPDATE {{ $table }} SET deleted_at = GETDATE() WHERE {{ colname .PrimaryKey.Col }} = ?`
+	const sqlstr = `UPDATE {{ $table }} SET deleted_at = now() WHERE {{ colname .PrimaryKey.Col }} = ?`
 		{{- else }}
 		const sqlstr = `DELETE FROM {{ $table }} WHERE {{ colname .PrimaryKey.Col }} = ?`
 		{{- end }}
@@ -205,3 +224,48 @@ func ({{ $short }} *{{ .Name }}) Delete(ctx context.Context, db XODB) error {
 	return nil
 }
 {{- end }}
+
+// All
+{{ .Name }}  s retrieves all rows from '
+{{ $table }} ' as a
+{{ .Name }}.
+func All{{ .Name }}s(ctx context.Context, db XODB) ([]*{{ .Name }}, error) {
+var err error
+{{- if .XRay }}
+ctx, seg := xray.BeginSubsegment(ctx, "All{{ .Name }}s")
+defer seg.Close(err)
+{{- end }}
+
+// sql query
+const sqlstr = `SELECT ` +
+`{{ colnames .Fields }} ` +
+`FROM {{ $table }}`
+
+// run query
+XOLog(sqlstr)
+q, err := db.Query(ctx, sqlstr)
+if err != nil {
+return nil, err
+}
+defer q.Close()
+
+// load results
+res := []*{{ .Name }}{}
+for q.Next() {
+{{ $short }} := {{ .Name }}{
+{{- if .PrimaryKey }}
+_exists: true,
+{{ end -}}
+}
+
+// scan
+err = q.Scan({{ fieldnames .Fields (print "&" $short) }})
+if err != nil {
+return nil, err
+}
+
+res = append(res, &{{ $short }})
+}
+
+return res, nil
+}
